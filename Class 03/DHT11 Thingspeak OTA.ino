@@ -1,23 +1,26 @@
+/*Author: Sayed Tanimun Hasan*/
+// This example use DHT11 sensor to collect and send the data to thingspeak server and it supports Cloud OTA
+
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <WebServer.h>
 #include <ESPmDNS.h>
 #include <Update.h>
 #include "DHT.h"
-
+#include <HTTPClient.h>
 #define DHTPIN 4
 #define DHTTYPE DHT11
 
-
-const char* hostname = "otaesp";
-const char* ssid = "******";  //  Enter your WiFi Name
-const char* password = "******"; //  Enter your WiFi Password
-
-const char* serverAddress = "api.thingspeak.com";
-String apiKey = "H38TEGNC0XKWX3BB";  //  Enter your Write API key from ThingSpeak
-
-
 DHT dht(DHTPIN, DHTTYPE);
+const char* hostname = "otaesp";
+const char* ssid = "Tanimun";
+const char* password = "Sayed@1599";
+
+const char* serverName = "http://api.thingspeak.com/update";
+String apiKey = "H38TEGNC0XKW43BB";  //  Enter your Write API key from ThingSpeak
+
+
+
 
 WebServer server(80);
 
@@ -96,11 +99,11 @@ String serverIndex =
 
 void setup() {
   Serial.begin(115200);
-  dht.begin();
   Serial.println("Booting");
 
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
+  dht.begin();
   while (WiFi.waitForConnectResult() != WL_CONNECTED) {
     Serial.println("Connection Failed! Rebooting...");
     delay(2000);
@@ -163,16 +166,16 @@ void setup() {
     });
 
   server.begin();
-  pinMode(13, OUTPUT);
+ 
 }
 
 void loop() {
   server.handleClient();
   delay(1);
-  digitalWrite(13, HIGH);
-  delay(600);
-  digitalWrite(13, LOW);
-  delay(600);
+  if(WiFi.status()== WL_CONNECTED){
+  WiFiClient client;
+  HTTPClient http;
+  delay(1000);
   float h = dht.readHumidity();
   float t = dht.readTemperature();
 
@@ -183,38 +186,29 @@ void loop() {
     return;
   }
 
-  WiFiClient client;
+  http.begin(client, serverName);
 
-  if (client.connect(serverAddress, 80)) { // Changed api.thingspeak.com to server
-    String postStr = apiKey;
-    postStr += "&field1=";
-    postStr += String(t);
-    postStr += "&field2=";
-    postStr += String(h);
-    postStr += "\r\n\r\n";
+  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
 
-    client.print("POST /update HTTP/1.1\n");
-    client.print("Host: api.thingspeak.com\n");
-    client.print("Connection: close\n");
-    client.print("X-THINGSPEAKAPIKEY: " + apiKey + "\n");
-    client.print("Content-Type: application/x-www-form-urlencoded\n");
-    client.print("Content-Length: ");
-    client.print(postStr.length());
-    client.print("\n\n");
-    client.print(postStr);
+  // Data to send with HTTP POST
 
-    Serial.print("Temperature: ");
-    Serial.print(t);
-    Serial.print(" degrees Celcius, Humidity: ");
-    Serial.print(h);
-    Serial.println("%. Send to Thingspeak.");
-  }
-  else {
-    Serial.println("Failed to connect to ThingSpeak server.");
-  }
 
-  client.stop();
+  String httpRequestData = "api_key=" + apiKey + "&field1=" + String(t) + "&field2=" + String(h);
 
-  Serial.println("Waiting....");
-  delay(1000);
+
+  int httpResponseCode = http.POST(httpRequestData);
+
+
+  Serial.print("HTTP Response code: ");
+
+  Serial.println(httpResponseCode);
+
+  http.end();
+}
+
+
+    else {
+
+    Serial.println("WiFi Disconnected");
+    }
 }
