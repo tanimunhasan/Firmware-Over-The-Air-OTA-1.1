@@ -13,11 +13,11 @@
 
 DHT dht(DHTPIN, DHTTYPE);
 const char* hostname = "otaesp";
-const char* ssid = "Tanimun";
-const char* password = "Sayed@1599";
+const char* ssid = "Your WiFi Name";
+const char* password = "Your WiFi Password";
 
 const char* serverName = "http://api.thingspeak.com/update";
-String apiKey = "H38TEGNC0XKW43BB";  //  Enter your Write API key from ThingSpeak
+String apiKey = "**********";  //  Enter your Write API key from ThingSpeak
 
 
 
